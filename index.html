@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bistro 3D: Burger Tycoon Deluxe</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .font-outfit {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Custom Glowing Accents */
+        .glow-blue {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.6);
+        }
+        .glow-green {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
+        }
+        .glow-amber {
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+        }
+        
+        /* Smooth transitions */
+        .fade-ui {
+            transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out;
+        }
+
+        /* Projected Speech Bubble */
+        .speech-bubble {
+            position: absolute;
+            transform: translate(-50%, -100%);
+            pointer-events: none;
+            z-index: 20;
+            transition: opacity 0.15s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden select-none">
+
+    <!-- Main Game HUD Container -->
+    <div id="game-app" class="flex-grow flex flex-col justify-between max-w-6xl w-full mx-auto p-3 sm:p-6">
+        
+        <!-- Header HUD -->
+        <header id="hud-header" class="fade-ui border border-slate-800 bg-slate-900/90 p-3 rounded-xl flex flex-wrap gap-4 justify-between items-center mb-4 shadow-lg">
+            <div class="flex items-center space-x-3">
+                <span class="relative flex h-3.5 w-3.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                </span>
+                <div>
+                    <h1 class="text-lg font-bold font-outfit text-white tracking-wide">BISTRO 3D: LUXURY TYCOON</h1>
+                    <p class="text-[11px] text-slate-400">STATUS: ACTIVE KITCHEN SIMULATION</p>
+                </div>
+            </div>
+            
+            <!-- Cash, Staff & Active Order Status -->
+            <div class="flex items-center space-x-3 sm:space-x-4 flex-wrap gap-2">
+                <div class="bg-black/40 px-3 py-1.5 rounded-lg border border-emerald-500/30 flex items-center space-x-2">
+                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-widest">CASH</span>
+                    <span id="cash-display" class="text-xl text-emerald-400 font-extrabold font-outfit glow-green">$25</span>
+                </div>
+                
+                <div class="bg-black/40 px-3 py-1.5 rounded-lg border border-blue-500/30 flex items-center space-x-2">
+                    <span class="text-xs text-blue-400 font-bold uppercase tracking-widest">ORDER</span>
+                    <span id="order-display" class="text-sm font-bold text-slate-200">Waiting...</span>
+                </div>
+
+                <div class="bg-black/40 px-3 py-1.5 rounded-lg border border-purple-500/30 flex items-center space-x-2">
+                    <span class="text-xs text-purple-400 font-bold uppercase tracking-widest">BURNERS</span>
+                    <span id="burners-display" class="text-sm font-bold text-slate-200">1 / 3</span>
+                </div>
+
+                <div class="bg-black/40 px-3 py-1.5 rounded-lg border border-indigo-500/30 flex items-center space-x-2">
+                    <span class="text-xs text-indigo-400 font-bold uppercase tracking-widest">STAFF</span>
+                    <span id="staff-display" class="text-xs font-bold text-slate-300">Solo</span>
+                </div>
+
+                <div class="bg-black/40 px-3 py-1.5 rounded-lg border border-amber-500/30 flex items-center space-x-2">
+                    <span class="text-xs text-amber-400 font-bold uppercase tracking-widest">HOLDING</span>
+                    <span id="holding-display" class="text-xs font-bold text-slate-300">Nothing</span>
+                </div>
+
+                <button onclick="toggleStealthMode()" class="px-3 py-1.5 border border-red-500/40 text-red-400 rounded-lg bg-red-950/20 hover:bg-red-900/30 transition text-xs font-bold uppercase tracking-wider">
+                    Stealth (H)
+                </button>
+            </div>
+        </header>
+
+        <!-- Intro/Start Screen -->
+        <div id="screen-intro" class="flex-grow flex flex-col justify-center items-center text-center p-6 bg-slate-900/90 border border-slate-800 rounded-xl my-auto max-w-2xl mx-auto space-y-6">
+            <div class="p-3 bg-blue-950/50 rounded-full border border-blue-500/50 animate-bounce">
+                <svg class="w-16 h-16 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            </div>
+            <h2 class="text-3xl font-orbitron font-extrabold text-blue-400 tracking-wider">BISTRO 3D: DELUXE TYCOON</h2>
+            <p class="text-slate-300 leading-relaxed max-w-lg">
+                Manage a multi-item fast food tycoon! Deliver Custom Combos containing Burgers, Fries, Drinks, and Nuggets stacked directly onto a serving tray!
+            </p>
+            <p class="text-amber-400 text-sm animate-pulse">
+                Click on elements around your kitchen to cook, fry, pour, and pack!
+            </p>
+            <button onclick="startGame()" class="px-8 py-3 bg-blue-500 hover:bg-blue-400 text-white font-orbitron font-bold text-lg rounded-lg shadow-lg hover:shadow-blue-500/50 transition-all duration-300 transform hover:-translate-y-0.5">
+                START BISTRO
+            </button>
+        </div>
+
+        <!-- Main Gameplay Workspace -->
+        <div id="gameplay-area" class="hidden flex-grow grid grid-cols-1 lg:grid-cols-4 gap-6 my-2">
+            
+            <!-- Sidebar Shop Panel -->
+            <div id="hud-sidebar" class="fade-ui lg:col-span-1 flex flex-col gap-4">
+                
+                <!-- Recipe & Info Book -->
+                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col">
+                    <span class="text-xs text-blue-400 font-bold uppercase tracking-widest border-b border-slate-800 pb-1 mb-2">Combo Values</span>
+                    <div class="space-y-2 text-xs text-slate-300">
+                        <div class="flex justify-between items-center border-b border-slate-800/40 pb-1">
+                            <span>🍔 Burger</span>
+                            <span class="text-emerald-400 font-bold">+$10</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800/40 pb-1">
+                            <span>🍟 Golden Fries</span>
+                            <span class="text-emerald-400 font-bold">+$5</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800/40 pb-1">
+                            <span>🥤 Fountain Drink</span>
+                            <span class="text-emerald-400 font-bold">+$4</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span>🍗 Nuggets Block</span>
+                            <span class="text-emerald-400 font-bold">+$6</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upgrades & Staff Hiring Shop -->
+                <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex flex-col flex-grow">
+                    <span class="text-xs text-amber-400 font-bold uppercase tracking-widest border-b border-slate-800 pb-1 mb-3">Kitchen upgrades</span>
+                    
+                    <div class="space-y-3 flex-grow overflow-y-auto max-h-[380px] pr-1">
+                        <!-- Buy Burner 2 -->
+                        <div id="shop-item-burner2" class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold text-cyan-300">🔥 Unlock Stove Slot 2</span>
+                                <span class="text-xs text-amber-400 font-bold">$50</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Enables cooking a second patty simultaneously.</p>
+                            <button onclick="upgradeGrill(2, 50)" class="w-full py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded transition">Unlock Burner 2</button>
+                        </div>
+
+                        <!-- Buy Burner 3 -->
+                        <div id="shop-item-burner3" class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold text-cyan-300">🔥 Unlock Stove Slot 3</span>
+                                <span class="text-xs text-amber-400 font-bold">$100</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Enables cooking a third patty simultaneously. Ultimate efficiency!</p>
+                            <button id="btn-burner3" onclick="upgradeGrill(3, 100)" class="w-full py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded transition opacity-50" disabled>Unlock Burner 3</button>
+                        </div>
+
+                        <!-- Hire Worker 1: Timmy the Gatherer -->
+                        <div id="shop-worker-timmy" class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold text-purple-300">👦 Hire Assistant Timmy</span>
+                                <span class="text-xs text-amber-400 font-bold">$80</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Automatically fetches raw patties from the fridge and places them on free burners for you.</p>
+                            <button onclick="hireWorker('timmy', 80)" class="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded transition">Hire Timmy</button>
+                        </div>
+
+                        <!-- Hire Worker 2: Flip-o-Matic Bot -->
+                        <div id="shop-worker-flipper" class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold text-purple-300">🤖 Hire Flipper Bot</span>
+                                <span class="text-xs text-amber-400 font-bold">$120</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">An automated kitchen gripper arm that instantly flips patties when they need it.</p>
+                            <button onclick="hireWorker('flipper', 120)" class="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded transition">Hire Flipper Bot</button>
+                        </div>
+
+                        <!-- Spatula Speed Upgrade -->
+                        <div class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold">⚡ Golden Spatula</span>
+                                <span id="spatula-cost" class="text-xs text-amber-400 font-bold">$30</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Decreases passive cooking duration of all burners by 40%.</p>
+                            <button onclick="buySpatula()" id="btn-buy-spatula" class="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded transition">Upgrade Spatula</button>
+                        </div>
+
+                        <!-- Toppings Unlocks -->
+                        <div id="shop-item-cheese" class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold">🧀 Cheddar Cheese</span>
+                                <span class="text-xs text-amber-400 font-bold">$40</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Unlocks Cheese Burgers (+ $5 per order).</p>
+                            <button onclick="buyTopping('cheese', 40)" class="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded transition">Unlock Cheese</button>
+                        </div>
+
+                        <div id="shop-item-bacon" class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold">🥓 Crispy Bacon</span>
+                                <span class="text-xs text-amber-400 font-bold">$70</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Unlocks Bacon Burgers (+ $10 per order).</p>
+                            <button onclick="buyTopping('bacon', 70)" class="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded transition">Unlock Bacon</button>
+                        </div>
+
+                        <div id="shop-item-avocado" class="p-2 bg-slate-950 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-bold">🥑 Fresh Avocado</span>
+                                <span class="text-xs text-amber-400 font-bold font-outfit">$100</span>
+                            </div>
+                            <p class="text-[10px] text-slate-400">Unlocks Deluxe Avocado Burgers (+ $15 per order).</p>
+                            <button onclick="buyTopping('avocado', 100)" class="w-full py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded transition">Unlock Avocado</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Canvas Panel -->
+            <div class="lg:col-span-3 flex flex-col gap-4 relative">
+                
+                <!-- Stealth Quick-Notice Indicator -->
+                <div id="stealth-indicator" class="absolute top-4 right-4 bg-slate-900/90 border border-slate-700/60 p-2 rounded-lg text-[11px] text-slate-400 pointer-events-none z-40 hidden">
+                    <span>Press <strong class="text-white">H</strong> to restore UI HUD overlay.</span>
+                </div>
+
+                <!-- Three.js Viewport -->
+                <div id="three-container" class="bg-slate-950 border border-slate-800 rounded-2xl relative overflow-hidden aspect-[16/10] shadow-2xl flex-grow">
+                    <!-- 3D Scene Loading Marker -->
+                    <div id="loading-overlay" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center space-y-3 z-30">
+                        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="text-xs text-slate-400 tracking-wider">PREPARING LUXURY MULTI-GRILL WORKSPACE...</span>
+                    </div>
+
+                    <!-- Projected Dynamic Speech Bubble -->
+                    <div id="customer-bubble" class="speech-bubble bg-slate-900/95 border-2 border-blue-500 text-slate-100 px-3 py-2 rounded-xl text-xs max-w-[200px] shadow-xl glow-blue opacity-0">
+                        <div class="font-bold text-blue-400 mb-0.5" id="bubble-name">Customer</div>
+                        <div id="bubble-text" class="text-[11px] leading-tight">Order goes here!</div>
+                    </div>
+                </div>
+
+                <!-- Action & Help Board -->
+                <div id="hud-feed" class="fade-ui bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-start space-x-3 shadow-lg">
+                    <div class="p-2 bg-slate-950 border border-blue-500/30 rounded-lg text-blue-400">
+                        <svg class="w-5 h-5 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-grow">
+                        <span class="text-[10px] text-blue-400 font-bold uppercase tracking-wider block">Kitchen Operations Logs</span>
+                        <p id="narrator-feed" class="text-xs text-slate-300 leading-relaxed font-outfit">
+                            Loading kitchen core...
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <footer id="hud-footer" class="fade-ui text-center text-[10px] text-slate-600 border-t border-slate-900 pt-3 flex flex-wrap justify-between gap-2 mt-4">
+            <span>BISTRO DELUXE ENGINE v7.1 • STACK & LINEUP UPGRADE</span>
+            <span>STEALTH LOCKER ENABLED</span>
+        </footer>
+    </div>
+
+    <!-- MAIN GAME ENGINE & WORKSPACE LOGIC -->
+    <script>
+        // Custom Simple Tween Engine for organic springy drops
+        function TWEEN_simple(obj, prop, targetVal, duration) {
+            const start = obj[prop];
+            const startTime = Date.now();
+            function step() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // Ease out bounce
+                const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                obj[prop] = start + (targetVal - start) * eased;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            }
+            step();
+        }
+
+        // Game State Engine
+        const state = {
+            isPlaying: false, 
+            cash: 25,
+            burgerPrepCost: 5,
+            activeOrder: {
+                burgerType: 'none', // 'basic', 'cheese', 'bacon', 'avocado', 'none'
+                fries: false,
+                drink: false,
+                nuggets: false
+            },
+            activeOrderStatus: 'WAITING',
+            cookSpeedFactor: 1.0, 
+            unlockedToppings: {
+                basic: true,
+                cheese: false,
+                bacon: false,
+                avocado: false
+            },
+            hiredWorkers: {
+                timmy: false,
+                flipper: false
+            },
+            unlockedBurners: 1, 
+            currentStep: 'GET_PATTY', 
+            stealthMode: false,
+            
+            // Hand holding states
+            heldItem: null, // null, 'raw_patty', 'cooked_patty', 'bottom_bun', 'top_bun', 'cheese_slice', 'bacon_strip', 'avocado_slice', 'cooked_fries', 'filled_drink', 'nugget_pack'
+
+            // Multi-Patty Stove Slot Trackers
+            patties: [
+                { active: false, progress: 0, flipped: false, isFlipping: false, flipTime: 0, mesh: null, index: 0 },
+                { active: false, progress: 0, flipped: false, isFlipping: false, flipTime: 0, mesh: null, index: 1 },
+                { active: false, progress: 0, flipped: false, isFlipping: false, flipTime: 0, mesh: null, index: 2 }
+            ],
+
+            // Active deep fryer machine state
+            fryer: {
+                active: false,
+                progress: 0,
+                mesh: null
+            },
+
+            // Active drink pourer state
+            drinkDispenser: {
+                filling: false,
+                progress: 0,
+                mesh: null
+            },
+
+            // Tray Assembly Content State (Resets every customer)
+            trayContent: {
+                burgerAssembled: false,
+                friesAssembled: false,
+                drinkAssembled: false,
+                nuggetsAssembled: false
+            },
+
+            // Burger structure compilation on prep board
+            assembledParts: {
+                bottomBun: false,
+                patty: false,
+                cheese: false,
+                bacon: false,
+                avocado: false,
+                topBun: false
+            },
+
+            // Lineup Queue (up to 3 customers physically represented)
+            customersLineup: []
+        };
+
+        // Three.js Scene Variables
+        let scene, camera, renderer;
+        let interactiveObjects = [];
+        let mouseStart = { x: 0, y: 0 };
+        let cameraAngle = -Math.PI / 4;
+        let isDragging = false;
+
+        // Interactive 3D Mesh References
+        let rawPattyDispenser, prepTableMesh, servingCounterMesh, breadBoxMesh;
+        let cheeseBoxMesh, baconBoxMesh, avocadoBoxMesh;
+        let deepFryerMesh, drinkMachineMesh, nuggetHolderMesh;
+        let guidingLight; 
+        
+        // Burner stove plate and slot meshes
+        let stoveGroup;
+        let burnerCoils = []; 
+        let lockedShields = []; 
+
+        // Bun Meshes on the Prep table (nested hierarchy)
+        let prepTrayGroup; // holds the physical Tray mesh + Burger Assembly
+        let trayMesh3D;
+        let stackedBottomBun, stackedPatty, stackedToppings = [], stackedTopBun;
+        let trayFriesMesh, trayDrinkMesh, trayNuggetsMesh;
+        
+        // Dynamic Worker Meshes
+        let timmyMesh, flipperBotMesh;
+
+        // Dynamic Cooking Particles Pool
+        let particles = [];
+        const particleCount = 20;
+
+        // List of random customer names
+        const customerNames = ["Lucas", "Chloe", "Ethan", "Sophia", "Oliver", "Emma", "Liam", "Ava"];
+
+        // Diagnostic Console Logger Helper
+        function logFeed(message) {
+            const feed = document.getElementById('narrator-feed');
+            if (feed) {
+                feed.innerHTML = message;
+            }
+        }
+
+        // Initialize 3D Arena
+        function init3D() {
+            const container = document.getElementById('three-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x080c14);
+            scene.fog = new THREE.FogExp2(0x080c14, 0.04);
+
+            camera = new THREE.PerspectiveCamera(52, width / height, 0.1, 100);
+            camera.position.set(Math.sin(cameraAngle) * 8.2, 5, Math.cos(cameraAngle) * 8.2);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Create stylized restaurant geometry
+            createKitchenGeometry();
+            createParticlesPool();
+
+            // Setup soft kitchen lighting
+            const ambient = new THREE.AmbientLight(0xffffff, 0.45);
+            scene.add(ambient);
+
+            const warmLight = new THREE.DirectionalLight(0xffe6cc, 1.4);
+            warmLight.position.set(6, 10, 6);
+            warmLight.castShadow = true;
+            warmLight.shadow.mapSize.width = 1024;
+            warmLight.shadow.mapSize.height = 1024;
+            scene.add(warmLight);
+
+            // Neon countertop accents
+            const blueStoveGlow = new THREE.PointLight(0x3b82f6, 1.2, 8);
+            blueStoveGlow.position.set(0, 1.2, 0);
+            scene.add(blueStoveGlow);
+
+            // Handle Interaction & Drag events
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            
+            renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: true });
+            renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: true });
+            renderer.domElement.addEventListener('touchend', onTouchEnd, { passive: true });
+
+            window.addEventListener('resize', onWindowResize);
+
+            // Setup keyboard listeners (H for stealth mode)
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'h' || e.key === 'H') {
+                    toggleStealthMode();
+                }
+            });
+
+            // Start Animation Loop
+            animate();
+            
+            // Hide loading indicator
+            document.getElementById('loading-overlay').classList.add('hidden');
+            
+            // Generate full lineup of 3 customers waiting
+            for (let i = 0; i < 3; i++) {
+                spawnCustomerToLineup(i);
+            }
+            recalculateCurrentStep();
+        }
+
+        // Build stylized kitchen scene objects
+        function createKitchenGeometry() {
+            // Main Floor
+            const floorGeo = new THREE.PlaneGeometry(16, 16);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = -1;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Sleek Tiled Backsplash Wall
+            const backsplashGeo = new THREE.BoxGeometry(16, 5, 0.4);
+            const backsplashMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+            const backsplash = new THREE.Mesh(backsplashGeo, backsplashMat);
+            backsplash.position.set(0, 1.5, -4);
+            scene.add(backsplash);
+
+            // Main Island Countertops
+            const islandGeo = new THREE.BoxGeometry(8, 1.5, 2);
+            const islandMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3 });
+            const island = new THREE.Mesh(islandGeo, islandMat);
+            island.position.set(0, -0.25, 0);
+            island.receiveShadow = true;
+            scene.add(island);
+
+            // --- STATION 1: Fridge / Raw Patty Dispenser (LEFT) ---
+            const fridgeGroup = new THREE.Group();
+            fridgeGroup.position.set(-2.8, 0.6, 0);
+            
+            const fridgeBodyGeo = new THREE.BoxGeometry(1.2, 1.5, 1.2);
+            const fridgeBodyMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.2 });
+            const fridgeBody = new THREE.Mesh(fridgeBodyGeo, fridgeBodyMat);
+            fridgeBody.castShadow = true;
+            fridgeGroup.add(fridgeBody);
+
+            const fridgeDoorGeo = new THREE.BoxGeometry(1.1, 1.4, 0.1);
+            const fridgeDoorMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9 });
+            const fridgeDoor = new THREE.Mesh(fridgeDoorGeo, fridgeDoorMat);
+            fridgeDoor.position.set(0, 0, 0.56);
+            fridgeGroup.add(fridgeDoor);
+
+            const dispScreenGeo = new THREE.PlaneGeometry(0.6, 0.3);
+            const dispScreenMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, emissive: 0x3b82f6, emissiveIntensity: 0.6 });
+            const dispScreen = new THREE.Mesh(dispScreenGeo, dispScreenMat);
+            dispScreen.position.set(0, 0.3, 0.62);
+            fridgeGroup.add(dispScreen);
+
+            rawPattyDispenser = fridgeBody;
+            rawPattyDispenser.name = "dispenser";
+            interactiveObjects.push(rawPattyDispenser);
+            scene.add(fridgeGroup);
+
+            // --- STATION 2: Overhauled 3-Slot Stove Grill ---
+            stoveGroup = new THREE.Group();
+            stoveGroup.position.set(0, 0.55, 0);
+
+            // Large main black griddle plate
+            const stovePlateGeo = new THREE.BoxGeometry(2.6, 0.1, 1.5);
+            const stovePlateMat = new THREE.MeshStandardMaterial({ color: 0x1a2230, metalness: 0.9, roughness: 0.5 });
+            const mainGriddle = new THREE.Mesh(stovePlateGeo, stovePlateMat);
+            stoveGroup.add(mainGriddle);
+
+            // Element slot positions
+            const burnerPositions = [
+                new THREE.Vector3(-0.7, 0.06, 0.2),  // Burner 1 (Default)
+                new THREE.Vector3(0.7, 0.06, 0.2),   // Burner 2 (Upgrade 1)
+                new THREE.Vector3(0, 0.06, -0.3)    // Burner 3 (Upgrade 2)
+            ];
+
+            const elementGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.02, 16);
+
+            for (let i = 0; i < 3; i++) {
+                const isDefault = i === 0;
+                const elementMat = new THREE.MeshStandardMaterial({ 
+                    color: isDefault ? 0xef4444 : 0x334155, 
+                    emissive: isDefault ? 0xef4444 : 0x000000, 
+                    emissiveIntensity: isDefault ? 0.35 : 0 
+                });
+                
+                const elementMesh = new THREE.Mesh(elementGeo, elementMat);
+                elementMesh.position.copy(burnerPositions[i]);
+                elementMesh.name = `stove_slot_${i}`;
+                stoveGroup.add(elementMesh);
+                interactiveObjects.push(elementMesh);
+                burnerCoils.push(elementMesh);
+
+                // Setup locked shields
+                if (!isDefault) {
+                    const shieldGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.1, 16);
+                    const shieldMat = new THREE.MeshStandardMaterial({ 
+                        color: 0xef4444, 
+                        transparent: true, 
+                        opacity: 0.65, 
+                        roughness: 0.1 
+                    });
+                    const shield = new THREE.Mesh(shieldGeo, shieldMat);
+                    shield.position.copy(burnerPositions[i]).add(new THREE.Vector3(0, 0.05, 0));
+                    stoveGroup.add(shield);
+                    lockedShields.push(shield);
+                } else {
+                    lockedShields.push(null); 
+                }
+            }
+
+            scene.add(stoveGroup);
+
+            // --- STATION 3: Assembly Prep Table with Serving Tray ---
+            const prepGroup = new THREE.Group();
+            prepGroup.position.set(2.6, 0.55, 0);
+
+            // Wooden cutting board table
+            const boardGeo = new THREE.BoxGeometry(1.6, 0.08, 1.2);
+            const boardMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.7 }); 
+            const cuttingBoard = new THREE.Mesh(boardGeo, boardMat);
+            prepGroup.add(cuttingBoard);
+
+            // Red Plastic Serving Tray mesh on the table
+            const trayGeo = new THREE.BoxGeometry(1.1, 0.05, 0.8);
+            const trayMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.5 }); // Amber plastic
+            trayMesh3D = new THREE.Mesh(trayGeo, trayMat);
+            trayMesh3D.position.set(0, 0.06, 0);
+            prepGroup.add(trayMesh3D);
+
+            // Stylized Bread Box on the side
+            const breadBoxGeo = new THREE.BoxGeometry(0.4, 0.3, 0.35);
+            const breadBoxMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.4 });
+            breadBoxMesh = new THREE.Mesh(breadBoxGeo, breadBoxMat);
+            breadBoxMesh.position.set(0.6, 0.2, -0.4);
+            breadBoxMesh.name = "bread_box";
+            prepGroup.add(breadBoxMesh);
+            interactiveObjects.push(breadBoxMesh);
+
+            // --- STATION 3.5: Clickable Topping Containers ---
+            // 1. Cheese Box
+            const cheeseBoxGeo = new THREE.BoxGeometry(0.3, 0.15, 0.3);
+            const cheeseBoxMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 });
+            cheeseBoxMesh = new THREE.Mesh(cheeseBoxGeo, cheeseBoxMat);
+            cheeseBoxMesh.position.set(-0.6, 0.1, -0.45);
+            cheeseBoxMesh.name = "topping_cheese";
+            prepGroup.add(cheeseBoxMesh);
+            interactiveObjects.push(cheeseBoxMesh);
+
+            // 2. Bacon Tray
+            const baconBoxGeo = new THREE.BoxGeometry(0.3, 0.15, 0.3);
+            const baconBoxMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.6 });
+            baconBoxMesh = new THREE.Mesh(baconBoxGeo, baconBoxMat);
+            baconBoxMesh.position.set(-0.25, 0.1, -0.45);
+            baconBoxMesh.name = "topping_bacon";
+            prepGroup.add(baconBoxMesh);
+            interactiveObjects.push(baconBoxMesh);
+
+            // 3. Avocado Bowl
+            const avocadoBoxGeo = new THREE.BoxGeometry(0.3, 0.15, 0.3);
+            const avocadoBoxMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.7 });
+            avocadoBoxMesh = new THREE.Mesh(avocadoBoxGeo, avocadoBoxMat);
+            avocadoBoxMesh.position.set(0.1, 0.1, -0.45);
+            prepGroup.add(avocadoBoxMesh);
+            avocadoBoxMesh.name = "topping_avocado";
+            interactiveObjects.push(avocadoBoxMesh);
+
+            // Nested group to hold dynamically stacked burger elements & tray attachments
+            prepTrayGroup = new THREE.Group();
+            prepTrayGroup.position.set(0, 0.08, 0); // Position exactly on the plastic tray surface
+            prepGroup.add(prepTrayGroup);
+
+            prepTableMesh = cuttingBoard;
+            prepTableMesh.name = "prep_table";
+            interactiveObjects.push(prepTableMesh);
+            scene.add(prepGroup);
+
+            // Set up clean starting assembly counter
+            resetPrepBuns();
+
+            // --- STATION 4: Serving Counter Window ---
+            const servGroup = new THREE.Group();
+            servGroup.position.set(0, 0.5, 2.5);
+
+            const deskShelfGeo = new THREE.BoxGeometry(4, 0.15, 1);
+            const deskShelfMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.2 });
+            const deskShelf = new THREE.Mesh(deskShelfGeo, deskShelfMat);
+            servGroup.add(deskShelf);
+
+            servingCounterMesh = deskShelf;
+            servingCounterMesh.name = "serving_counter";
+            interactiveObjects.push(servingCounterMesh);
+            scene.add(servGroup);
+
+            // --- PULSING GUIDING LIGHT ---
+            const guideGeo = new THREE.TorusGeometry(0.42, 0.06, 8, 24);
+            const guideMat = new THREE.MeshBasicMaterial({ 
+                color: 0x3b82f6, 
+                transparent: true, 
+                opacity: 0.8 
+            });
+            guidingLight = new THREE.Mesh(guideGeo, guideMat);
+            guidingLight.rotation.x = Math.PI / 2;
+            guidingLight.position.set(-2.8, 1.8, 0); 
+            scene.add(guidingLight);
+
+            // --- NEW STATION 5: Deep Fryer (FACING FRONT-RIGHT) ---
+            const fryerGroup = new THREE.Group();
+            fryerGroup.position.set(-3.5, 0.55, 1.8);
+            fryerGroup.rotation.y = Math.PI / 4;
+
+            const fryerBaseGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+            const fryerBaseMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 });
+            const fryerBase = new THREE.Mesh(fryerBaseGeo, fryerBaseMat);
+            fryerGroup.add(fryerBase);
+
+            // Basket Slot
+            const basketGeo = new THREE.BoxGeometry(0.6, 0.4, 0.6);
+            const basketMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8 });
+            deepFryerMesh = new THREE.Mesh(basketGeo, basketMat);
+            deepFryerMesh.position.set(0, 0.5, 0);
+            deepFryerMesh.name = "deep_fryer";
+            fryerGroup.add(deepFryerMesh);
+            interactiveObjects.push(deepFryerMesh);
+            scene.add(fryerGroup);
+
+            // --- NEW STATION 6: Fountain Soda Machine (FACING FRONT-LEFT) ---
+            const drinkGroup = new THREE.Group();
+            drinkGroup.position.set(3.5, 0.55, 1.8);
+            drinkGroup.rotation.y = -Math.PI / 4;
+
+            const dispenserBaseGeo = new THREE.BoxGeometry(1.0, 1.2, 0.8);
+            const dispenserBaseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.2 });
+            const dispenserBase = new THREE.Mesh(dispenserBaseGeo, dispenserBaseMat);
+            drinkGroup.add(dispenserBase);
+
+            // Soda nozzles
+            const nozzleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 8);
+            const nozzleMat = new THREE.MeshStandardMaterial({ color: 0xf3f4f6 });
+            const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat);
+            nozzle.position.set(0, 0.1, 0.42);
+            drinkGroup.add(nozzle);
+
+            drinkMachineMesh = dispenserBase;
+            drinkMachineMesh.name = "drink_fountain";
+            interactiveObjects.push(drinkMachineMesh);
+            scene.add(drinkGroup);
+
+            // --- NEW STATION 7: Golden Nugget Warmer ---
+            const nuggetsGroup = new THREE.Group();
+            nuggetsGroup.position.set(-1.8, 0.55, -1.3);
+
+            const warmerBaseGeo = new THREE.BoxGeometry(0.8, 0.4, 0.8);
+            const warmerBaseMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.1 });
+            const warmerBase = new THREE.Mesh(warmerBaseGeo, warmerBaseMat);
+            nuggetsGroup.add(warmerBase);
+
+            // Display heater lights
+            const nuggetTrayGeo = new THREE.BoxGeometry(0.6, 0.1, 0.6);
+            const nuggetTrayMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xf59e0b, emissiveIntensity: 0.5 });
+            nuggetHolderMesh = new THREE.Mesh(nuggetTrayGeo, nuggetTrayMat);
+            nuggetHolderMesh.position.set(0, 0.2, 0);
+            nuggetHolderMesh.name = "nugget_warmer";
+            nuggetsGroup.add(nuggetHolderMesh);
+            interactiveObjects.push(nuggetHolderMesh);
+            scene.add(nuggetsGroup);
+        }
+
+        // Particle Steam Generator
+        function createParticlesPool() {
+            const partGeo = new THREE.SphereGeometry(0.04, 8, 8);
+            const partMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
+            
+            for (let i = 0; i < particleCount; i++) {
+                const mesh = new THREE.Mesh(partGeo, partMat);
+                mesh.visible = false;
+                scene.add(mesh);
+                particles.push({
+                    mesh: mesh,
+                    vy: 0.02 + Math.random() * 0.02,
+                    vx: (Math.random() - 0.5) * 0.01,
+                    vz: (Math.random() - 0.5) * 0.01,
+                    life: 0,
+                    maxLife: 25 + Math.random() * 25
+                });
+            }
+        }
+
+        function triggerSizzleSteam(emitterX, emitterZ) {
+            particles.forEach(p => {
+                if (!p.mesh.visible) {
+                    p.mesh.visible = true;
+                    p.mesh.position.set(
+                        emitterX + (Math.random() - 0.5) * 0.35,
+                        0.75,
+                        emitterZ + (Math.random() - 0.5) * 0.35
+                    );
+                    p.life = 0;
+                    p.mesh.scale.setScalar(1);
+                }
+            });
+        }
+
+        function updateParticles() {
+            particles.forEach(p => {
+                if (p.mesh.visible) {
+                    p.mesh.position.y += p.vy;
+                    p.mesh.position.x += p.vx;
+                    p.mesh.position.z += p.vz;
+                    p.life++;
+                    p.mesh.scale.setScalar(1 - (p.life / p.maxLife));
+                    if (p.life >= p.maxLife) {
+                        p.mesh.visible = false;
+                    }
+                }
+            });
+        }
+
+        // --- BREAD / BUNS VISUAL ASSEMBLY STACK ---
+        function resetPrepBuns() {
+            while (prepTrayGroup.children.length > 0) {
+                prepTrayGroup.remove(prepTrayGroup.children[0]);
+            }
+
+            stackedBottomBun = null;
+            stackedPatty = null;
+            stackedToppings = [];
+            stackedTopBun = null;
+
+            trayFriesMesh = null;
+            trayDrinkMesh = null;
+            trayNuggetsMesh = null;
+
+            state.assembledParts.bottomBun = false;
+            state.assembledParts.patty = false;
+            state.assembledParts.cheese = false;
+            state.assembledParts.bacon = false;
+            state.assembledParts.avocado = false;
+            state.assembledParts.topBun = false;
+
+            state.trayContent.burgerAssembled = false;
+            state.trayContent.friesAssembled = false;
+            state.trayContent.drinkAssembled = false;
+            state.trayContent.nuggetsAssembled = false;
+        }
+
+        // Dynamically stack meat and toppings on bread with bounce-fall
+        function animateBurgerStack() {
+            let currentHeight = 0;
+            const burgerOffsetX = -0.25;
+
+            // 1. Bottom Bun
+            if (state.assembledParts.bottomBun && !stackedBottomBun) {
+                const bunBottomGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16);
+                const bunMat = new THREE.MeshStandardMaterial({ color: 0xcd7f32, roughness: 0.6 });
+                stackedBottomBun = new THREE.Mesh(bunBottomGeo, bunMat);
+                stackedBottomBun.position.set(burgerOffsetX, 1.2, 0); 
+                prepTrayGroup.add(stackedBottomBun);
+                new TWEEN_simple(stackedBottomBun.position, 'y', 0.025, 250);
+            }
+            if (state.assembledParts.bottomBun) currentHeight += 0.05;
+
+            // 2. Patty
+            if (state.assembledParts.patty && !stackedPatty) {
+                const meatGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.05, 16);
+                const meatMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.5 });
+                stackedPatty = new THREE.Mesh(meatGeo, meatMat);
+                stackedPatty.position.set(burgerOffsetX, 1.2, 0); 
+                prepTrayGroup.add(stackedPatty);
+                new TWEEN_simple(stackedPatty.position, 'y', currentHeight + 0.025, 250);
+            }
+            if (state.assembledParts.patty) currentHeight += 0.05;
+
+            // 3. Premium Cheese
+            if (state.assembledParts.cheese && !state.assembledParts.cheese.placed && state.activeOrder.burgerType === 'cheese') {
+                const cheeseGeo = new THREE.BoxGeometry(0.35, 0.015, 0.35);
+                const cheeseMat = new THREE.MeshStandardMaterial({ color: 0xfacc15 }); 
+                const cheeseMesh = new THREE.Mesh(cheeseGeo, cheeseMat);
+                cheeseMesh.position.set(burgerOffsetX, 1.2, 0);
+                cheeseMesh.rotation.y = Math.PI / 4;
+                prepTrayGroup.add(cheeseMesh);
+                stackedToppings.push(cheeseMesh);
+                state.assembledParts.cheese.placed = true;
+                new TWEEN_simple(cheeseMesh.position, 'y', currentHeight + 0.007, 250);
+            }
+            if (state.assembledParts.cheese && state.assembledParts.cheese.placed) currentHeight += 0.015;
+
+            // 4. Premium Bacon
+            if (state.assembledParts.bacon && !state.assembledParts.bacon.placed && state.activeOrder.burgerType === 'bacon') {
+                const baconGeo = new THREE.BoxGeometry(0.35, 0.02, 0.11);
+                const baconMat = new THREE.MeshStandardMaterial({ color: 0x991b1b }); 
+                const b1 = new THREE.Mesh(baconGeo, baconMat);
+                b1.position.set(burgerOffsetX - 0.05, 1.2, 0);
+                const b2 = new THREE.Mesh(baconGeo, baconMat);
+                b2.position.set(burgerOffsetX + 0.05, 1.2, 0);
+                prepTrayGroup.add(b1);
+                prepTrayGroup.add(b2);
+                stackedToppings.push(b1, b2);
+                state.assembledParts.bacon.placed = true;
+                new TWEEN_simple(b1.position, 'y', currentHeight + 0.01, 250);
+                new TWEEN_simple(b2.position, 'y', currentHeight + 0.01, 250);
+            }
+            if (state.assembledParts.bacon && state.assembledParts.bacon.placed) currentHeight += 0.02;
+
+            // 5. Premium Avocado
+            if (state.assembledParts.avocado && !state.assembledParts.avocado.placed && state.activeOrder.burgerType === 'avocado') {
+                const avocadoGeo = new THREE.BoxGeometry(0.15, 0.025, 0.3);
+                const avocadoMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, roughness: 0.8 }); 
+                const a1 = new THREE.Mesh(avocadoGeo, avocadoMat);
+                a1.position.set(burgerOffsetX, 1.2, 0);
+                a1.rotation.z = 0.1;
+                prepTrayGroup.add(a1);
+                stackedToppings.push(a1);
+                state.assembledParts.avocado.placed = true;
+                new TWEEN_simple(a1.position, 'y', currentHeight + 0.012, 250);
+            }
+            if (state.assembledParts.avocado && state.assembledParts.avocado.placed) currentHeight += 0.025;
+
+            // 6. Top Bun Dome
+            if (state.assembledParts.topBun && !stackedTopBun) {
+                const bunTopGeo = new THREE.SphereGeometry(0.2, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+                const bunMat = new THREE.MeshStandardMaterial({ color: 0xcd7f32, roughness: 0.6 });
+                stackedTopBun = new THREE.Mesh(bunTopGeo, bunMat);
+                stackedTopBun.position.set(burgerOffsetX, 1.5, 0);
+                prepTrayGroup.add(stackedTopBun);
+                new TWEEN_simple(stackedTopBun.position, 'y', currentHeight, 250);
+            }
+        }
+
+        // Dynamically add Drink, Fries and Nuggets to the Serving Tray
+        function addTrayItem(type) {
+            if (type === 'fries' && !trayFriesMesh) {
+                const fryHolderGroup = new THREE.Group();
+                fryHolderGroup.position.set(0.2, 1.2, 0.2); 
+
+                const holderGeo = new THREE.CylinderGeometry(0.12, 0.1, 0.24, 12);
+                const holderMat = new THREE.MeshStandardMaterial({ color: 0xef4444 }); 
+                const holder = new THREE.Mesh(holderGeo, holderMat);
+                fryHolderGroup.add(holder);
+
+                const wedgeGeo = new THREE.BoxGeometry(0.04, 0.25, 0.04);
+                const wedgeMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24 }); 
+                for (let i = 0; i < 5; i++) {
+                    const wedge = new THREE.Mesh(wedgeGeo, wedgeMat);
+                    wedge.position.set((Math.random() - 0.5) * 0.1, 0.12, (Math.random() - 0.5) * 0.1);
+                    wedge.rotation.set(Math.random() * 0.2, 0, Math.random() * 0.2);
+                    fryHolderGroup.add(wedge);
+                }
+
+                prepTrayGroup.add(fryHolderGroup);
+                trayFriesMesh = fryHolderGroup;
+                new TWEEN_simple(fryHolderGroup.position, 'y', 0.12, 300);
+            }
+
+            if (type === 'drink' && !trayDrinkMesh) {
+                const cupGroup = new THREE.Group();
+                cupGroup.position.set(0.2, 1.2, -0.2);
+
+                const cupGeo = new THREE.CylinderGeometry(0.12, 0.08, 0.35, 12);
+                const cupMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc }); 
+                const cup = new THREE.Mesh(cupGeo, cupMat);
+                cupGroup.add(cup);
+
+                const strawGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.4, 8);
+                const strawMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6 }); 
+                const straw = new THREE.Mesh(strawGeo, strawMat);
+                straw.position.set(0.03, 0.18, 0.03);
+                straw.rotation.z = -0.25;
+                cupGroup.add(straw);
+
+                prepTrayGroup.add(cupGroup);
+                trayDrinkMesh = cupGroup;
+                new TWEEN_simple(cupGroup.position, 'y', 0.18, 300);
+            }
+
+            if (type === 'nuggets' && !trayNuggetsMesh) {
+                const boxGroup = new THREE.Group();
+                boxGroup.position.set(-0.25, 1.2, 0.22);
+
+                const boxGeo = new THREE.BoxGeometry(0.25, 0.1, 0.25);
+                const boxMat = new THREE.MeshStandardMaterial({ color: 0x92400e }); 
+                const box = new THREE.Mesh(boxGeo, boxMat);
+                boxGroup.add(box);
+
+                const nuggetGeo = new THREE.BoxGeometry(0.08, 0.06, 0.08);
+                const nuggetMat = new THREE.MeshStandardMaterial({ color: 0xd97706 }); 
+                for (let i = 0; i < 3; i++) {
+                    const nug = new THREE.Mesh(nuggetGeo, nuggetMat);
+                    nug.position.set((Math.random() - 0.5) * 0.1, 0.06, (Math.random() - 0.5) * 0.1);
+                    boxGroup.add(nug);
+                }
+
+                prepTrayGroup.add(boxGroup);
+                trayNuggetsMesh = boxGroup;
+                new TWEEN_simple(boxGroup.position, 'y', 0.05, 300);
+            }
+        }
+
+        // --- CUSTOMER LINEUP QUEUE SYSTEM ---
+        function spawnCustomerToLineup(slotIndex) {
+            const name = customerNames[Math.floor(Math.random() * customerNames.length)];
+            
+            // STRICT UPGRADE CHECK: Only allow burger types that have been unlocked!
+            const burgerOptions = ['basic'];
+            if (state.unlockedToppings.cheese) burgerOptions.push('cheese');
+            if (state.unlockedToppings.bacon) burgerOptions.push('bacon');
+            if (state.unlockedToppings.avocado) burgerOptions.push('avocado');
+            
+            const selectedBurger = burgerOptions[Math.floor(Math.random() * burgerOptions.length)];
+            const wantsFries = Math.random() < 0.65;
+            const wantsDrink = Math.random() < 0.75;
+            const wantsNuggets = Math.random() < 0.45;
+
+            // Generate request text safely
+            let reqText = `Hi, I'm ${name}! I'd like a ${selectedBurger.toUpperCase()} burger`;
+            if (wantsFries) reqText += " + FRIES 🍟";
+            if (wantsDrink) reqText += " + SODA 🥤";
+            if (wantsNuggets) reqText += " + NUGGETS 🍗";
+            reqText += "!";
+
+            const clientGroup = new THREE.Group();
+            clientGroup.position.set(0, -0.2, 8 + slotIndex * 1.5); 
+
+            // Torso
+            const torsoGeo = new THREE.BoxGeometry(0.65, 1.0, 0.4);
+            const colors = [0x3b82f6, 0xec4899, 0xf59e0b, 0x10b981, 0x8b5cf6];
+            const torsoMat = new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random() * colors.length)] });
+            const torso = new THREE.Mesh(torsoGeo, torsoMat);
+            torso.position.y = 0.5;
+            clientGroup.add(torso);
+
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xfdba74 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.3;
+            clientGroup.add(head);
+
+            // Cap
+            const capGeo = new THREE.BoxGeometry(0.54, 0.15, 0.54);
+            const capMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.y = 1.6;
+            clientGroup.add(cap);
+
+            scene.add(clientGroup);
+
+            const customerObj = {
+                mesh: clientGroup,
+                name: name,
+                burgerType: selectedBurger,
+                fries: wantsFries,
+                drink: wantsDrink,
+                nuggets: wantsNuggets,
+                dialogue: reqText,
+                status: 'WALKING_IN',
+                targetZ: 3.4 + slotIndex * 1.4,
+                animProgress: 0,
+                posY: -0.2
+            };
+
+            state.customersLineup.push(customerObj);
+        }
+
+        function updateCustomerQueueAnimation() {
+            const time = Date.now() * 0.003;
+
+            state.customersLineup.forEach((cust, index) => {
+                if (!cust.mesh) return;
+
+                if (cust.status === 'WALKING_IN') {
+                    const diffZ = cust.mesh.position.z - cust.targetZ;
+                    if (Math.abs(diffZ) > 0.02) {
+                        cust.mesh.position.z -= 0.05;
+                        cust.mesh.position.y = cust.posY + Math.abs(Math.sin(time * 3.5)) * 0.12; 
+                        cust.mesh.rotation.x = Math.sin(time * 3.5) * 0.04;
+                    } else {
+                        cust.mesh.position.z = cust.targetZ;
+                        cust.mesh.position.y = cust.posY;
+                        cust.mesh.rotation.x = 0;
+                        cust.status = 'WAITING';
+                        
+                        if (index === 0) {
+                            setActiveOrderData(cust);
+                        }
+                    }
+                } 
+                else if (cust.status === 'WAITING') {
+                    cust.mesh.position.y = cust.posY + Math.sin(time * 1.5) * 0.03;
+                    cust.mesh.rotation.y = Math.sin(time * 0.5) * 0.05;
+                    
+                    if (index === 0) {
+                        projectSpeechBubble(cust.mesh, cust.name, cust.dialogue);
+                    }
+                } 
+                else if (cust.status === 'CELEBRATING') {
+                    cust.animProgress += 0.04;
+                    cust.mesh.position.y = cust.posY + Math.sin(cust.animProgress * Math.PI) * 1.0;
+                    cust.mesh.rotation.y = cust.animProgress * Math.PI * 4;
+
+                    if (cust.animProgress >= 1) {
+                        cust.mesh.position.y = cust.posY;
+                        cust.mesh.rotation.y = 0;
+                        cust.status = 'WALKING_OUT';
+                        cust.animProgress = 0;
+                        
+                        const bubble = document.getElementById('customer-bubble');
+                        if (bubble) bubble.style.opacity = '0';
+                    }
+                } 
+                else if (cust.status === 'WALKING_OUT') {
+                    cust.mesh.position.x -= 0.08;
+                    cust.mesh.position.y = cust.posY + Math.abs(Math.sin(time * 3.5)) * 0.12;
+                    cust.mesh.rotation.z = Math.sin(time * 3.5) * 0.05;
+
+                    if (cust.mesh.position.x <= -6) {
+                        scene.remove(cust.mesh);
+                        cust.mesh = null;
+                    }
+                }
+            });
+
+            // Cleanup null clients and advance the lineup
+            const originalLength = state.customersLineup.length;
+            state.customersLineup = state.customersLineup.filter(c => c.mesh !== null);
+
+            if (state.customersLineup.length < originalLength) {
+                state.customersLineup.forEach((cust, i) => {
+                    cust.targetZ = 3.4 + i * 1.4;
+                    cust.status = 'WALKING_IN';
+                });
+
+                spawnCustomerToLineup(state.customersLineup.length);
+            }
+        }
+
+        function projectSpeechBubble(mesh, name, dialogue) {
+            if (!mesh || state.stealthMode) {
+                document.getElementById('customer-bubble').style.opacity = '0';
+                return;
+            }
+
+            const tempV = new THREE.Vector3();
+            mesh.getWorldPosition(tempV);
+            tempV.y += 1.8; 
+
+            tempV.project(camera);
+
+            if (tempV.z > 1) {
+                document.getElementById('customer-bubble').style.opacity = '0';
+                return;
+            }
+
+            const container = document.getElementById('three-container');
+            const x = (tempV.x * .5 + .5) * container.clientWidth;
+            const y = (tempV.y * -.5 + .5) * container.clientHeight;
+
+            const bubble = document.getElementById('customer-bubble');
+            bubble.style.left = `${x}px`;
+            bubble.style.top = `${y}px`;
+            bubble.style.opacity = '1';
+
+            document.getElementById('bubble-name').innerText = name;
+            document.getElementById('bubble-text').innerText = dialogue;
+        }
+
+        function setActiveOrderData(cust) {
+            state.activeOrder.burgerType = cust.burgerType;
+            state.activeOrder.fries = cust.fries;
+            state.activeOrder.drink = cust.drink;
+            state.activeOrder.nuggets = cust.nuggets;
+            state.activeOrderStatus = 'WAITING';
+
+            let name = `${cust.burgerType.toUpperCase()} Burger`;
+            if (cust.fries) name += " + 🍟";
+            if (cust.drink) name += " + 🥤";
+            if (cust.nuggets) name += " + 🍗";
+
+            document.getElementById('order-display').innerText = name;
+            logFeed(`Active Order: <strong class="text-blue-400">${cust.name}</strong> wants ${name}. Let's get cooking!`);
+            
+            recalculateCurrentStep();
+        }
+
+        // Spawn Sous Chef Timmy Model
+        function spawnTimmy3D() {
+            if (timmyMesh) return;
+            const timmyGroup = new THREE.Group();
+            timmyGroup.position.set(-1.8, 0, -1.2);
+
+            const torsoGeo = new THREE.BoxGeometry(0.5, 0.8, 0.4);
+            const torsoMat = new THREE.MeshStandardMaterial({ color: 0x10b981 }); 
+            const torso = new THREE.Mesh(torsoGeo, torsoMat);
+            timmyGroup.add(torso);
+
+            const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xfdba74 });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 0.6;
+            timmyGroup.add(head);
+
+            const hatGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 8);
+            const hatMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const hat = new THREE.Mesh(hatGeo, hatMat);
+            hat.position.y = 0.9;
+            timmyGroup.add(hat);
+
+            timmyMesh = timmyGroup;
+            scene.add(timmyMesh);
+        }
+
+        // Spawn Flipper Bot
+        function spawnFlipperBot3D() {
+            if (flipperBotMesh) return;
+            const botGroup = new THREE.Group();
+            botGroup.position.set(0, 0.6, -1.4);
+
+            const baseGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 12);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            botGroup.add(base);
+
+            const armGeo = new THREE.BoxGeometry(0.12, 1.0, 0.12);
+            const armMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 });
+            const arm = new THREE.Mesh(armGeo, armMat);
+            arm.position.set(0, 0.5, 0);
+            arm.rotation.z = Math.PI / 4;
+            botGroup.add(arm);
+
+            const handGeo = new THREE.BoxGeometry(0.3, 0.1, 0.4);
+            const handMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9 });
+            const hand = new THREE.Mesh(handGeo, handMat);
+            hand.position.set(0.35, 0.9, 0);
+            botGroup.add(hand);
+
+            flipperBotMesh = botGroup;
+            scene.add(flipperBotMesh);
+        }
+
+        // Camera dragging & look-at logic
+        function onMouseDown(event) {
+            if (!state.isPlaying) return;
+            isDragging = true;
+            mouseStart.x = event.clientX;
+            mouseStart.y = event.clientY;
+        }
+
+        function onMouseMove(event) {
+            if (!isDragging || !state.isPlaying) return;
+            const deltaX = event.clientX - mouseStart.x;
+            
+            cameraAngle -= deltaX * 0.005;
+            camera.position.x = Math.sin(cameraAngle) * 8.2;
+            camera.position.z = Math.cos(cameraAngle) * 8.2;
+            camera.lookAt(0, 0, 0);
+            
+            mouseStart.x = event.clientX;
+            mouseStart.y = event.clientY;
+        }
+
+        function onMouseUp(event) {
+            if (!isDragging || !state.isPlaying) return;
+            isDragging = false;
+            
+            const deltaX = Math.abs(event.clientX - mouseStart.x);
+            const deltaY = Math.abs(event.clientY - mouseStart.y);
+            
+            if (deltaX < 5 && deltaY < 5) {
+                performRaycast(event.clientX, event.clientY);
+            }
+        }
+
+        function onTouchStart(event) {
+            if (!state.isPlaying) return;
+            if (event.touches.length === 1) {
+                isDragging = true;
+                mouseStart.x = event.touches[0].clientX;
+                mouseStart.y = event.touches[0].clientY;
+            }
+        }
+
+        function onTouchMove(event) {
+            if (!isDragging || !state.isPlaying || event.touches.length !== 1) return;
+            const deltaX = event.touches[0].clientX - mouseStart.x;
+            cameraAngle -= deltaX * 0.005;
+            camera.position.x = Math.sin(cameraAngle) * 8.2;
+            camera.position.z = Math.cos(cameraAngle) * 8.2;
+            camera.lookAt(0, 0, 0);
+            mouseStart.x = event.touches[0].clientX;
+            mouseStart.y = event.touches[0].clientY;
+        }
+
+        function onTouchEnd(event) {
+            if (!state.isPlaying) return;
+            isDragging = false;
+            if (event.changedTouches.length === 1) {
+                const deltaX = Math.abs(event.changedTouches[0].clientX - mouseStart.x);
+                const deltaY = Math.abs(event.changedTouches[0].clientY - mouseStart.y);
+                if (deltaX < 5 && deltaY < 5) {
+                    performRaycast(event.changedTouches[0].clientX, event.changedTouches[0].clientY);
+                }
+            }
+        }
+
+        // Raycasting Logic
+        function performRaycast(clientX, clientY) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            
+            const mouse = new THREE.Vector2();
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(interactiveObjects, true);
+            if (intersects.length > 0) {
+                let clickedObject = intersects[0].object;
+                
+                while (clickedObject && !clickedObject.name) {
+                    clickedObject = clickedObject.parent;
+                }
+                
+                if (clickedObject && clickedObject.name) {
+                    interact(clickedObject.name);
+                }
+            }
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('three-container');
+            if (!container) return;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        // Real-time loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = Date.now() * 0.003;
+            
+            // Rotational pulse animation of guiding light
+            if (guidingLight) {
+                guidingLight.rotation.z += 0.015;
+                guidingLight.scale.setScalar(1 + Math.sin(time * 2.5) * 0.12);
+            }
+
+            // Animate Workers
+            if (timmyMesh) {
+                timmyMesh.position.y = Math.sin(time * 2) * 0.05;
+            }
+            if (flipperBotMesh) {
+                flipperBotMesh.rotation.y = Math.sin(time * 0.8) * 0.15;
+            }
+
+            // Customer animations and speech projections
+            updateCustomerQueueAnimation();
+
+            // Sizzle progress trackers for stoves
+            const burnerPositions = [
+                new THREE.Vector3(-0.7, 0.06, 0.2),
+                new THREE.Vector3(0.7, 0.06, 0.2),
+                new THREE.Vector3(0, 0.06, -0.3)
+            ];
+
+            state.patties.forEach(patty => {
+                if (patty.active) {
+                    if (Math.random() < 0.12) {
+                        triggerSizzleSteam(burnerPositions[patty.index].x, burnerPositions[patty.index].z);
+                    }
+
+                    if (patty.isFlipping) {
+                        patty.flipTime += 0.1;
+                        if (patty.flipTime >= Math.PI) {
+                            patty.isFlipping = false;
+                            patty.mesh.position.y = 0.08; 
+                            patty.mesh.rotation.x = 0;
+                            patty.mesh.material.color.setHex(0xec4899); 
+                            logFeed(`Patty ${patty.index + 1} flipped! Sizzling Side B.`);
+                            recalculateCurrentStep();
+                        } else {
+                            patty.mesh.position.y = 0.08 + Math.sin(patty.flipTime) * 0.8;
+                            patty.mesh.rotation.x = patty.flipTime;
+                        }
+                    } else {
+                        if (patty.progress < 50 && !patty.flipped) {
+                            patty.progress += 0.15 * state.cookSpeedFactor;
+                            if (patty.progress >= 50) {
+                                patty.progress = 50;
+                                patty.mesh.material.color.setHex(0xb45309); 
+
+                                if (state.hiredWorkers.flipper) {
+                                    flipPattyAtIndex(patty.index);
+                                } else {
+                                    logFeed(`Grill Element ${patty.index + 1} needs to be flipped!`);
+                                    recalculateCurrentStep();
+                                }
+                            } else {
+                                const factor = patty.progress / 50;
+                                patty.mesh.material.color.lerpColors(new THREE.Color(0xec4899), new THREE.Color(0xb45309), factor);
+                            }
+                        } 
+                        else if (patty.progress >= 50 && patty.flipped && patty.progress < 100) {
+                            patty.progress += 0.15 * state.cookSpeedFactor;
+                            if (patty.progress >= 100) {
+                                patty.progress = 100;
+                                patty.mesh.material.color.setHex(0x3e2723); 
+                                logFeed(`Grill Element ${patty.index + 1} is fully seared! Ready to collect.`);
+                                recalculateCurrentStep();
+                            } else {
+                                const factor = (patty.progress - 50) / 50;
+                                patty.mesh.material.color.lerpColors(new THREE.Color(0xec4899), new THREE.Color(0x3e2723), factor);
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Deep Fryer progress tracking
+            if (state.fryer.active) {
+                state.fryer.progress += 0.4 * state.cookSpeedFactor;
+                if (state.fryer.progress >= 100) {
+                    state.fryer.active = false;
+                    state.heldItem = 'cooked_fries';
+                    updateHoldingDisplay();
+                    logFeed("Golden hot fries cooked! Pack them on the tray at the prep station.");
+                    recalculateCurrentStep();
+                    
+                    // Animate basket returning upwards
+                    new TWEEN_simple(deepFryerMesh.position, 'y', 0.5, 200);
+                } else {
+                    // Basket lowered sizzling inside fryer
+                    deepFryerMesh.position.y = 0.25;
+                    if (Math.random() < 0.2) {
+                        triggerSizzleSteam(-3.5, 1.8);
+                    }
+                }
+            }
+
+            // Soda fountain progress tracking
+            if (state.drinkDispenser.filling) {
+                state.drinkDispenser.progress += 0.8 * state.cookSpeedFactor;
+                if (state.drinkDispenser.progress >= 100) {
+                    state.drinkDispenser.filling = false;
+                    state.heldItem = 'filled_drink';
+                    updateHoldingDisplay();
+                    logFeed("Soda poured perfectly! Take it and place it on the tray.");
+                    recalculateCurrentStep();
+                }
+            }
+
+            // Timmy Automated Gathering Engine
+            if (state.hiredWorkers.timmy && state.currentStep === 'GET_PATTY') {
+                let freeSlot = -1;
+                for (let i = 0; i < state.unlockedBurners; i++) {
+                    if (!state.patties[i].active) {
+                        freeSlot = i;
+                        break;
+                    }
+                }
+
+                if (freeSlot !== -1 && state.cash >= state.burgerPrepCost) {
+                    state.cash -= state.burgerPrepCost;
+                    updateCashDisplay();
+                    
+                    if (timmyMesh) {
+                        timmyMesh.position.z += 0.5;
+                        setTimeout(() => { if (timmyMesh) timmyMesh.position.z = -1.2; }, 300);
+                    }
+
+                    placePattyOnStove(freeSlot);
+                }
+            }
+
+            updateParticles();
+            renderer.render(scene, camera);
+        }
+
+        // INTERACTION COMPONENT FOR RAYCAST HIT
+        function interact(target) {
+            if (state.customersLineup.length === 0 || state.customersLineup[0].status === 'WALKING_IN') {
+                logFeed("Wait for a customer to arrive at the serving window first!");
+                return;
+            }
+
+            // 1. Click on fridge to grab a raw patty
+            if (target === 'dispenser') {
+                if (state.heldItem) {
+                    logFeed(`Your hands are full holding a **${state.heldItem.replace('_',' ')}**! Deposit it first.`);
+                    return;
+                }
+
+                let hasEmptyBurner = false;
+                for (let i = 0; i < state.unlockedBurners; i++) {
+                    if (!state.patties[i].active) {
+                        hasEmptyBurner = true;
+                        break;
+                    }
+                }
+
+                if (!hasEmptyBurner) {
+                    logFeed("All unlocked burners are currently occupied! Cook or collect existing patties first.");
+                    return;
+                }
+
+                if (state.cash < state.burgerPrepCost) {
+                    logFeed("<span class='text-red-400 font-bold'>FAIL:</span> You need at least $5 to buy raw burger ingredients.");
+                    return;
+                }
+
+                state.cash -= state.burgerPrepCost;
+                updateCashDisplay();
+                state.heldItem = 'raw_patty';
+                logFeed("Raw patty gathered! Click on any active, empty burner element to place it.");
+                
+                updateHoldingDisplay();
+                recalculateCurrentStep();
+            }
+
+            // 2. Click on Stove slots to place/flip/collect
+            else if (target.startsWith('stove_slot_')) {
+                const index = parseInt(target.replace('stove_slot_', ''));
+
+                if (index >= state.unlockedBurners) {
+                    logFeed("That stove element is currently locked. Purchase the burner upgrade in the shop first!");
+                    return;
+                }
+
+                const patty = state.patties[index];
+
+                if (state.heldItem === 'raw_patty') {
+                    if (patty.active) {
+                        logFeed("That burner is already occupied!");
+                        return;
+                    }
+                    placePattyOnStove(index);
+                } 
+                else if (patty.active) {
+                    if (patty.progress === 50 && !patty.flipped && !patty.isFlipping) {
+                        flipPattyAtIndex(index);
+                    } 
+                    else if (patty.progress === 100 && !state.heldItem) {
+                        pickUpCookedPatty(index);
+                    }
+                }
+            }
+
+            // 3. Click on Bread Box to grab Bottom or Top bun
+            else if (target === 'bread_box') {
+                if (state.heldItem) {
+                    logFeed(`Your hands are full holding a **${state.heldItem.replace('_',' ')}**! Deposit it first.`);
+                    return;
+                }
+
+                if (!state.assembledParts.bottomBun) {
+                    state.heldItem = 'bottom_bun';
+                    logFeed("Grabbed a fresh bottom bun! Place it on the assembly plate.");
+                } else if (state.assembledParts.patty && !state.assembledParts.topBun) {
+                    let toppingsNeeded = checkToppingsCompleteness();
+                    if (toppingsNeeded) {
+                        logFeed(`Wait! Your order requires **${state.activeOrder.burgerType.toUpperCase()}** toppings. Gather those before putting on the top bun.`);
+                        return;
+                    }
+                    state.heldItem = 'top_bun';
+                    logFeed("Grabbed a top bun! Click on the prep table to complete your burger.");
+                } else {
+                    logFeed("You don't need a bun right now.");
+                }
+
+                updateHoldingDisplay();
+                recalculateCurrentStep();
+            }
+
+            // 3.5 Click on Premium Toppings
+            else if (target.startsWith('topping_')) {
+                const topping = target.replace('topping_', '');
+
+                if (state.heldItem) {
+                    logFeed(`Your hands are full holding a **${state.heldItem.replace('_',' ')}**! Deposit it first.`);
+                    return;
+                }
+
+                if (!state.unlockedToppings[topping]) {
+                    logFeed(`Premium **${topping.toUpperCase()}** is locked! Unlock it in the shop sidebar.`);
+                    return;
+                }
+
+                if (state.activeOrder.burgerType !== topping) {
+                    logFeed(`The current customer doesn't want **${topping.toUpperCase()}**! Only gather toppings they requested.`);
+                    return;
+                }
+
+                if (!state.assembledParts.patty) {
+                    logFeed("Lay down the cooked patty before adding any premium toppings!");
+                    return;
+                }
+
+                state.heldItem = `${topping}_slice`;
+                logFeed(`Grabbed a fresh ${topping} topping! Deposit it on the assembled burger at the prep table.`);
+                
+                updateHoldingDisplay();
+                recalculateCurrentStep();
+            }
+
+            // --- NEW STATION 5: Deep Fryer Click Trigger ---
+            else if (target === 'deep_fryer') {
+                if (state.heldItem) {
+                    logFeed("Hands full! Free them before using the fryer.");
+                    return;
+                }
+
+                if (!state.activeOrder.fries) {
+                    logFeed("The customer did not order fries. No need to cook them!");
+                    return;
+                }
+
+                if (state.trayContent.friesAssembled) {
+                    logFeed("Fries are already assembled on the serving tray!");
+                    return;
+                }
+
+                if (state.fryer.active) {
+                    logFeed("Fries are already sizzling in the hot oil!");
+                    return;
+                }
+
+                // Start frying
+                state.fryer.active = true;
+                state.fryer.progress = 0;
+                logFeed("Lowered potato basket into the deep fryer. Sizzling golden french fries...");
+                recalculateCurrentStep();
+            }
+
+            // --- NEW STATION 6: Soda Fountain Click Trigger ---
+            else if (target === 'drink_fountain') {
+                if (state.heldItem) {
+                    logFeed("Hands full! Free them before pouring a drink.");
+                    return;
+                }
+
+                if (!state.activeOrder.drink) {
+                    logFeed("The customer did not order a drink.");
+                    return;
+                }
+
+                if (state.trayContent.drinkAssembled) {
+                    logFeed("Drink is already assembled on the serving tray!");
+                    return;
+                }
+
+                if (state.drinkDispenser.filling) {
+                    logFeed("Soda is already pouring into the paper cup!");
+                    return;
+                }
+
+                state.drinkDispenser.filling = true;
+                state.drinkDispenser.progress = 0;
+                logFeed("Filling paper cup with fizzy cola soda...");
+                recalculateCurrentStep();
+            }
+
+            // --- NEW STATION 7: Nugget Warmer Click Trigger ---
+            else if (target === 'nugget_warmer') {
+                if (state.heldItem) {
+                    logFeed("Hands full! Free them before packing nuggets.");
+                    return;
+                }
+
+                if (!state.activeOrder.nuggets) {
+                    logFeed("The customer did not order nuggets.");
+                    return;
+                }
+
+                if (state.trayContent.nuggetsAssembled) {
+                    logFeed("Nuggets are already assembled on the serving tray!");
+                    return;
+                }
+
+                state.heldItem = 'nugget_pack';
+                logFeed("Packed fresh, hot golden nuggets! Place them onto the serving tray.");
+                updateHoldingDisplay();
+                recalculateCurrentStep();
+            }
+
+            // 4. Click on Prep Table (Serving Tray) to Assemble ingredients
+            else if (target === 'prep_table') {
+                if (!state.heldItem) {
+                    logFeed("Your hands are empty. Grab a bun, patty, toppings, drink, or side to pack.");
+                    return;
+                }
+
+                // Placing Bottom Bun
+                if (state.heldItem === 'bottom_bun') {
+                    state.heldItem = null;
+                    state.assembledParts.bottomBun = true;
+                    animateBurgerStack();
+                    logFeed("Bottom bun placed on the serving tray! Now, cook and collect a patty.");
+                }
+                // Placing Cooked Patty
+                else if (state.heldItem === 'cooked_patty') {
+                    if (!state.assembledParts.bottomBun) {
+                        logFeed("You need to lay down a bottom bun before putting the patty on the tray!");
+                        return;
+                    }
+                    state.heldItem = null;
+                    state.assembledParts.patty = true;
+                    animateBurgerStack();
+                    logFeed("Patty stacked! Now add any requested toppings, or complete with the top bun.");
+                }
+                // Placing Cheese
+                else if (state.heldItem === 'cheese_slice') {
+                    state.heldItem = null;
+                    state.assembledParts.cheese = { placed: false };
+                    animateBurgerStack();
+                    logFeed("Cheese layer stacked! You can now crown it with the top bun.");
+                }
+                // Placing Bacon
+                else if (state.heldItem === 'bacon_strip') {
+                    state.heldItem = null;
+                    state.assembledParts.bacon = { placed: false };
+                    animateBurgerStack();
+                    logFeed("Crispy bacon strips stacked! You can now crown it with the top bun.");
+                }
+                // Placing Avocado
+                else if (state.heldItem === 'avocado_slice') {
+                    state.heldItem = null;
+                    state.assembledParts.avocado = { placed: false };
+                    animateBurgerStack();
+                    logFeed("Fresh avocado slices stacked! You can now crown it with the top bun.");
+                }
+                // Placing Top Bun
+                else if (state.heldItem === 'top_bun') {
+                    state.heldItem = null;
+                    state.assembledParts.topBun = true;
+                    state.trayContent.burgerAssembled = true;
+                    animateBurgerStack();
+                    logFeed("Burger assembly complete on the tray!");
+                }
+                // Placing Fries on Tray
+                else if (state.heldItem === 'cooked_fries') {
+                    state.heldItem = null;
+                    state.trayContent.friesAssembled = true;
+                    addTrayItem('fries');
+                    logFeed("Golden crispy fries stacked on the serving tray!");
+                }
+                // Placing Drink on Tray
+                else if (state.heldItem === 'filled_drink') {
+                    state.heldItem = null;
+                    state.trayContent.drinkAssembled = true;
+                    addTrayItem('drink');
+                    logFeed("Soda fountain cup stacked on the serving tray!");
+                }
+                // Placing Nuggets on Tray
+                else if (state.heldItem === 'nugget_pack') {
+                    state.heldItem = null;
+                    state.trayContent.nuggetsAssembled = true;
+                    addTrayItem('nuggets');
+                    logFeed("Crispy nuggets box packed on the serving tray!");
+                }
+
+                updateHoldingDisplay();
+                recalculateCurrentStep();
+            }
+
+            // 5. Click Serving counter to deliver completed meal
+            else if (target === 'serving_counter') {
+                // Ensure order is not already being processed
+                if (state.customersLineup[0].status === 'CELEBRATING' || state.customersLineup[0].status === 'WALKING_OUT') {
+                    return;
+                }
+
+                // Verify that everything requested by customer matches the assembled tray content
+                let orderMatches = verifyCompletedOrder();
+                if (!orderMatches) {
+                    logFeed("<span class='text-amber-400 font-bold'>WAIT!</span> The serving tray is missing items. Check the speech bubble for requested items.");
+                    return;
+                }
+
+                // Safe guard to prevent double-serving before celebration starts
+                state.customersLineup[0].status = 'CELEBRATING';
+                state.customersLineup[0].animProgress = 0;
+
+                let payout = 0;
+                if (state.activeOrder.burgerType !== 'none') payout += 10;
+                if (state.activeOrder.burgerType === 'cheese') payout += 5;
+                if (state.activeOrder.burgerType === 'bacon') payout += 10;
+                if (state.activeOrder.burgerType === 'avocado') payout += 15;
+                if (state.activeOrder.fries) payout += 5;
+                if (state.activeOrder.drink) payout += 4;
+                if (state.activeOrder.nuggets) payout += 6;
+
+                state.cash += payout;
+                updateCashDisplay();
+
+                logFeed(`Delivered combo order successfully! You made <strong class="text-emerald-400">$${payout}</strong>.`);
+                
+                // INSTANTLY clear the tray so it doesn't look like witchcraft!
+                resetPrepBuns();
+
+                state.heldItem = null;
+                updateHoldingDisplay();
+            }
+        }
+
+        // Verifies if what player prepared matches current customer ticket exactly
+        function verifyCompletedOrder() {
+            if (state.activeOrder.burgerType !== 'none' && !state.trayContent.burgerAssembled) return false;
+            if (state.activeOrder.fries && !state.trayContent.friesAssembled) return false;
+            if (state.activeOrder.drink && !state.trayContent.drinkAssembled) return false;
+            if (state.activeOrder.nuggets && !state.trayContent.nuggetsAssembled) return false;
+            return true;
+        }
+
+        // Helper check to see if required order toppings are assembled
+        function checkToppingsCompleteness() {
+            if (state.activeOrder.burgerType === 'cheese' && !state.assembledParts.cheese) return true;
+            if (state.activeOrder.burgerType === 'bacon' && !state.assembledParts.bacon) return true;
+            if (state.activeOrder.burgerType === 'avocado' && !state.assembledParts.avocado) return true;
+            return false;
+        }
+
+        // Placements & Flipping actions
+        function placePattyOnStove(index) {
+            state.heldItem = null;
+            updateHoldingDisplay();
+
+            const patty = state.patties[index];
+            patty.active = true;
+            patty.progress = 0;
+            patty.flipped = false;
+            patty.isFlipping = false;
+
+            const burnerPositions = [
+                new THREE.Vector3(-0.7, 0.06, 0.2),
+                new THREE.Vector3(0.7, 0.06, 0.2),
+                new THREE.Vector3(0, 0.06, -0.3)
+            ];
+
+            const pattyGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16);
+            const pattyMat = new THREE.MeshStandardMaterial({ color: 0xec4899, roughness: 0.6 });
+            const mesh = new THREE.Mesh(pattyGeo, pattyMat);
+            
+            mesh.position.copy(burnerPositions[index]);
+            mesh.position.y += 0.08; 
+            mesh.name = `stove_slot_${index}`;
+            
+            stoveGroup.add(mesh);
+            interactiveObjects.push(mesh);
+            patty.mesh = mesh;
+
+            logFeed(`Raw patty placed on griddle slot ${index + 1}. Cooking Side A...`);
+            recalculateCurrentStep();
+        }
+
+        function flipPattyAtIndex(index) {
+            const patty = state.patties[index];
+            if (patty.isFlipping) return;
+
+            patty.isFlipping = true;
+            patty.flipTime = 0;
+            patty.flipped = true;
+
+            logFeed(`Spatula applied on slot ${index + 1}! Performing a flipping spin.`);
+        }
+
+        // Pick up cooked patty
+        function pickUpCookedPatty(index) {
+            const patty = state.patties[index];
+            patty.active = false;
+
+            stoveGroup.remove(patty.mesh);
+            const intIndex = interactiveObjects.indexOf(patty.mesh);
+            if (intIndex > -1) {
+                interactiveObjects.splice(intIndex, 1);
+            }
+            patty.mesh = null;
+
+            state.heldItem = 'cooked_patty';
+            logFeed(`You collected the cooked patty from slot ${index + 1}! Go and stack it on your bread buns.`);
+            
+            updateHoldingDisplay();
+            recalculateCurrentStep();
+        }
+
+        // Auto-calculating guiding light positions
+        function recalculateCurrentStep() {
+            if (state.customersLineup.length === 0 || state.customersLineup[0].status === 'WALKING_IN') {
+                state.currentStep = 'WAIT_CUSTOMER';
+                updateGuidingLight();
+                return;
+            }
+
+            // If the whole tray is completed, guide to SERVE counter
+            let comboMatched = verifyCompletedOrder();
+            if (comboMatched) {
+                state.currentStep = 'SERVE';
+                updateGuidingLight();
+                return;
+            }
+
+            // Hands full with something? Guide to Tray Assembly table
+            if (state.heldItem && state.heldItem !== 'raw_patty') {
+                state.currentStep = 'ASSEMBLE';
+                updateGuidingLight();
+                return;
+            }
+
+            // Step 1: Handle Burger if customer wants it and it's not made yet
+            if (state.activeOrder.burgerType !== 'none' && !state.trayContent.burgerAssembled) {
+                if (state.heldItem === 'raw_patty') {
+                    state.currentStep = 'PLACE_ON_STOVE';
+                }
+                else if (!state.assembledParts.bottomBun) {
+                    state.currentStep = 'GET_BOTTOM_BUN';
+                }
+                else if (!state.assembledParts.patty) {
+                    // Check if patty is cooking or ready
+                    let readyToCollect = -1;
+                    let needsFlip = -1;
+                    for (let i = 0; i < state.unlockedBurners; i++) {
+                        if (state.patties[i].active) {
+                            if (state.patties[i].progress === 100) readyToCollect = i;
+                            if (state.patties[i].progress === 50 && !state.patties[i].flipped) needsFlip = i;
+                        }
+                    }
+                    if (readyToCollect !== -1) state.currentStep = 'COLLECT_PATTY';
+                    else if (needsFlip !== -1) state.currentStep = 'FLIP_PATTY';
+                    else state.currentStep = 'GET_PATTY';
+                }
+                else {
+                    let toppingsNeeded = checkToppingsCompleteness();
+                    if (toppingsNeeded) {
+                        state.currentStep = `GET_TOPPING_${state.activeOrder.burgerType.toUpperCase()}`;
+                    } else {
+                        state.currentStep = 'GET_TOP_BUN';
+                    }
+                }
+            }
+            // Step 2: Handle Fries if customer wants them and they are not compiled on tray
+            else if (state.activeOrder.fries && !state.trayContent.friesAssembled) {
+                if (state.fryer.active) {
+                    state.currentStep = 'WAIT_COOK_STAGE';
+                } else {
+                    state.currentStep = 'GET_FRIES';
+                }
+            }
+            // Step 3: Handle Drink if customer wants it and it's not compiled on tray
+            else if (state.activeOrder.drink && !state.trayContent.drinkAssembled) {
+                if (state.drinkDispenser.filling) {
+                    state.currentStep = 'WAIT_COOK_STAGE';
+                } else {
+                    state.currentStep = 'GET_DRINK';
+                }
+            }
+            // Step 4: Handle Nuggets if customer wants them and they are not compiled on tray
+            else if (state.activeOrder.nuggets && !state.trayContent.nuggetsAssembled) {
+                state.currentStep = 'GET_NUGGETS';
+            }
+
+            updateGuidingLight();
+        }
+
+        // Guiding Light coordinate alignment
+        function updateGuidingLight() {
+            if (!guidingLight) return;
+            
+            guidingLight.visible = true;
+            const burnerPositions = [
+                new THREE.Vector3(-0.7, 1.2, 0.2),
+                new THREE.Vector3(0.7, 1.2, 0.2),
+                new THREE.Vector3(0, 1.2, -0.3)
+            ];
+
+            switch (state.currentStep) {
+                case 'GET_BOTTOM_BUN':
+                case 'GET_TOP_BUN':
+                    guidingLight.position.set(3.2, 1.1, -0.4); // Bread box
+                    break;
+                case 'GET_PATTY':
+                    guidingLight.position.set(-2.8, 1.8, 0); // Fridge Dispenser
+                    break;
+                case 'PLACE_ON_STOVE':
+                    let openBurner = 0;
+                    for (let i = 0; i < state.unlockedBurners; i++) {
+                        if (!state.patties[i].active) {
+                            openBurner = i;
+                            break;
+                        }
+                    }
+                    guidingLight.position.copy(burnerPositions[openBurner]);
+                    break;
+                case 'FLIP_PATTY':
+                    let flipIdx = 0;
+                    for (let i = 0; i < state.unlockedBurners; i++) {
+                        if (state.patties[i].active && state.patties[i].progress === 50 && !state.patties[i].flipped) {
+                            flipIdx = i;
+                            break;
+                        }
+                    }
+                    guidingLight.position.copy(burnerPositions[flipIdx]);
+                    break;
+                case 'COLLECT_PATTY':
+                    let collIdx = 0;
+                    for (let i = 0; i < state.unlockedBurners; i++) {
+                        if (state.patties[i].active && state.patties[i].progress === 100) {
+                            collIdx = i;
+                            break;
+                        }
+                    }
+                    guidingLight.position.copy(burnerPositions[collIdx]);
+                    break;
+                case 'GET_TOPPING_CHEESE':
+                    guidingLight.position.set(2.0, 1.0, -0.45); // Cheese Box
+                    break;
+                case 'GET_TOPPING_BACON':
+                    guidingLight.position.set(2.35, 1.0, -0.45); // Bacon Tray
+                    break;
+                case 'GET_TOPPING_AVOCADO':
+                    guidingLight.position.set(2.7, 1.0, -0.45); // Avocado Bowl
+                    break;
+                case 'GET_FRIES':
+                    guidingLight.position.set(-2.8, 1.3, 1.1); // Deep Fryer basket
+                    break;
+                case 'GET_DRINK':
+                    guidingLight.position.set(2.8, 1.3, 1.1); // Soda fountain
+                    break;
+                case 'GET_NUGGETS':
+                    guidingLight.position.set(-1.8, 1.0, -1.3); // Nuggets warmer tray
+                    break;
+                case 'ASSEMBLE':
+                    guidingLight.position.set(2.6, 1.2, 0); // Prep board tray
+                    break;
+                case 'SERVE':
+                    guidingLight.position.set(0, 1.2, 2.5); // Delivery counter
+                    break;
+                default:
+                    guidingLight.visible = false;
+            }
+        }
+
+        // HIRE WORKERS & UPGRADES SHOP COMPONENT
+        function hireWorker(type, cost) {
+            if (!state.isPlaying) return; 
+            if (state.cash < cost) {
+                logFeed(`<span class='text-red-400 font-bold'>FAIL:</span> Hiring ${type} costs $${cost}.`);
+                return;
+            }
+
+            state.cash -= cost;
+            state.hiredWorkers[type] = true;
+            updateCashDisplay();
+
+            if (type === 'timmy') {
+                spawnTimmy3D();
+                logFeed("You hired Assistant Timmy! He will now handle raw patty gathering automatically.");
+                document.getElementById('shop-worker-timmy').remove();
+            } else if (type === 'flipper') {
+                spawnFlipperBot3D();
+                logFeed("You hired the Flipper Bot! It will automatically flip patties on the grill.");
+                document.getElementById('shop-worker-flipper').remove();
+            }
+            updateStaffStatus();
+        }
+
+        function upgradeGrill(slot, cost) {
+            if (!state.isPlaying) return;
+            if (state.cash < cost) {
+                logFeed(`<span class='text-red-400 font-bold'>FAIL:</span> Unlocking burner ${slot} costs $${cost}.`);
+                return;
+            }
+
+            state.cash -= cost;
+            state.unlockedBurners = slot;
+            updateCashDisplay();
+
+            // Destroy locked shield in 3D
+            const shield = lockedShields[slot - 1];
+            if (shield) {
+                stoveGroup.remove(shield);
+            }
+
+            // Glow the newly activated coil burner
+            burnerCoils[slot - 1].material.color.setHex(0xef4444);
+            burnerCoils[slot - 1].material.emissive.setHex(0xef4444);
+            burnerCoils[slot - 1].material.emissiveIntensity = 0.35;
+
+            logFeed(`Stove Burner Slot ${slot} unlocked successfully! You can now cook multiple patties!`);
+            document.getElementById(`shop-item-burner${slot}`).remove();
+
+            // Adjust slot UI
+            document.getElementById('burners-display').innerText = `${state.unlockedBurners} / 3`;
+
+            // Enable upgrade burner 3 button once burner 2 is unlocked
+            if (slot === 2) {
+                const btn3 = document.getElementById('btn-burner3');
+                if (btn3) {
+                    btn3.disabled = false;
+                    btn3.classList.remove('opacity-50');
+                }
+            }
+
+            recalculateCurrentStep();
+        }
+
+        function buySpatula() {
+            if (!state.isPlaying) return; 
+            const cost = 30;
+            if (state.cash < cost) {
+                logFeed("Upgrade costs $30.");
+                return;
+            }
+
+            state.cash -= cost;
+            state.cookSpeedFactor += 0.4; 
+            updateCashDisplay();
+
+            logFeed("Golden Spatula unlocked! All cooking tasks complete 40% faster!");
+            
+            document.getElementById('btn-buy-spatula').innerText = "MAX GOLD SPATULA";
+            document.getElementById('btn-buy-spatula').disabled = true;
+        }
+
+        function buyTopping(topping, cost) {
+            if (!state.isPlaying) return; 
+            if (state.cash < cost) {
+                logFeed(`Unlocking premium ingredient costs $${cost}.`);
+                return;
+            }
+
+            state.cash -= cost;
+            state.unlockedToppings[topping] = true;
+            updateCashDisplay();
+
+            logFeed(`Unlocked specialty **${topping.toUpperCase()}** toppings! Customers can now order luxury dishes.`);
+            
+            document.getElementById(`recipe-${topping}`).classList.remove('opacity-40');
+            document.getElementById(`shop-item-${topping}`).remove();
+        }
+
+        // Safe staff HUD reader
+        function updateStaffStatus() {
+            let statusText = "Solo";
+            if (state.hiredWorkers.timmy && state.hiredWorkers.flipper) {
+                statusText = "Auto-Grid Team";
+            } else if (state.hiredWorkers.timmy) {
+                statusText = "Timmy Gatherer";
+            } else if (state.hiredWorkers.flipper) {
+                statusText = "Flipper Bot";
+            }
+            
+            const readout = document.getElementById('staff-display');
+            if (readout) {
+                readout.innerText = statusText;
+            }
+        }
+
+        function updateHoldingDisplay() {
+            const display = document.getElementById('holding-display');
+            if (display) {
+                display.innerText = state.heldItem ? state.heldItem.replace('_',' ').toUpperCase() : 'NOTHING';
+            }
+        }
+
+        function updateCashDisplay() {
+            document.getElementById('cash-display').innerText = `$${state.cash}`;
+        }
+
+        // STEALTH / CONCEAL METHOD (H Key)
+        function toggleStealthMode() {
+            if (!state.isPlaying || !scene) return; 
+            state.stealthMode = !state.stealthMode;
+            
+            const header = document.getElementById('hud-header');
+            const sidebar = document.getElementById('hud-sidebar');
+            const footer = document.getElementById('hud-footer');
+            const feed = document.getElementById('hud-feed');
+            const stealthNotice = document.getElementById('stealth-indicator');
+
+            if (state.stealthMode) {
+                header.classList.add('opacity-0', 'pointer-events-none');
+                sidebar.classList.add('opacity-0', 'pointer-events-none');
+                footer.classList.add('opacity-0', 'pointer-events-none');
+                feed.classList.add('opacity-0', 'pointer-events-none');
+                stealthNotice.classList.remove('hidden');
+                document.getElementById('customer-bubble').style.opacity = '0';
+                
+                scene.background = new THREE.Color(0x0a0a0a);
+                if (guidingLight) guidingLight.visible = false;
+            } else {
+                header.classList.remove('opacity-0', 'pointer-events-none');
+                sidebar.classList.remove('opacity-0', 'pointer-events-none');
+                footer.classList.remove('opacity-0', 'pointer-events-none');
+                feed.classList.remove('opacity-0', 'pointer-events-none');
+                stealthNotice.classList.add('hidden');
+                
+                scene.background = new THREE.Color(0x080c14);
+                recalculateCurrentStep();
+            }
+        }
+
+        // Game Starter Launcher
+        function startGame() {
+            state.isPlaying = true;
+            document.getElementById('screen-intro').classList.add('hidden');
+            document.getElementById('gameplay-area').classList.remove('hidden');
+            init3D();
+            updateStaffStatus(); 
+        }
+    </script>
+</body>
+</html>
